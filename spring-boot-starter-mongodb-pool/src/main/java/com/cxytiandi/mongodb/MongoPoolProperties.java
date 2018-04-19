@@ -12,45 +12,12 @@ public class MongoPoolProperties {
 	 * 存储时是否保存_class
 	 */
 	private boolean showClass = true;
-	
-	/**
-	 * Mongo server host.
-	 */
 	private String host;
-
-	/**
-	 * Mongo server port.
-	 */
 	private Integer port = 27017;
-
-	/**
-	 * Mongo database URI. When set, host and port are ignored.
-	 */
-	private String uri = "mongodb://localhost/test";
-
-	/**
-	 * Database name.
-	 */
 	private String database;
-
-	/**
-	 * Authentication database name.
-	 */
 	private String authenticationDatabase;
-
-	/**
-	 * GridFS database name.
-	 */
 	private String gridFsDatabase;
-
-	/**
-	 * Login user of the mongo server.
-	 */
 	private String username;
-
-	/**
-	 * Login password of the mongo server.
-	 */
 	private char[] password;
 
     private int minConnectionsPerHost;

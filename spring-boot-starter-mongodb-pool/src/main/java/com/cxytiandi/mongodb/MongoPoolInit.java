@@ -29,6 +29,7 @@ import org.springframework.data.mongodb.core.convert.MappingMongoConverter;
 import org.springframework.data.mongodb.core.mapping.MongoMappingContext;
 import org.springframework.data.mongodb.gridfs.GridFsTemplate;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
@@ -59,7 +60,12 @@ public class MongoPoolInit implements BeanDefinitionRegistryPostProcessor, Envir
 			MongoClientOptions options = buildMongoOptions(properties);
 			List<ServerAddress> seeds = Arrays.asList(new ServerAddress(properties.getHost(), properties.getPort()));
 			MongoClient mongoClient = new MongoClient(seeds, options);
-			SimpleMongoDbFactory mongoDbFactory = new SimpleMongoDbFactory(mongoClient, properties.getDatabase());
+			SimpleMongoDbFactory mongoDbFactory = null;
+			if (StringUtils.hasText(properties.getGridFsDatabase())) {
+				mongoDbFactory = new SimpleMongoDbFactory(mongoClient, properties.getGridFsDatabase());
+			} else {
+				mongoDbFactory = new SimpleMongoDbFactory(mongoClient, properties.getDatabase());
+			}
 			MappingMongoConverter converter = buildConverter(mongoDbFactory, properties.isShowClass());
 			boolean primary = false;
 			if (index == 0) {
