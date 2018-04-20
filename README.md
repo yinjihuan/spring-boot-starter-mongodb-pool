@@ -147,6 +147,13 @@ public class MongoPoolProperties {
 }
 ```
 
+# 去掉_class
+ Spring Data Mongodb在保存数据的时候会自动增加一个_class字段用来关联这条数据的Document实体类，大数据量下会浪费存储空间，我们可以通过下面的配置禁用掉：
+ 
+ ```
+ spring.data.mongodb.testMongoTemplate.showClass=false
+ ```
+
 # 作者
 - 尹吉欢 1304489315@qq.com
 - 博客 http://cxytiandi.com/blogs/yinjihuan
