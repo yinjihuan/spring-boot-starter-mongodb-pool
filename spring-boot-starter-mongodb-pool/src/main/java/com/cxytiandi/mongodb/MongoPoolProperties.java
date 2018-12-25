@@ -8,6 +8,8 @@ public class MongoPoolProperties {
 	
 	private String gridFsTemplateName = "gridFsTemplate";
 	
+	private String applicationName;
+	
 	/**
 	 * 存储时是否保存_class
 	 */

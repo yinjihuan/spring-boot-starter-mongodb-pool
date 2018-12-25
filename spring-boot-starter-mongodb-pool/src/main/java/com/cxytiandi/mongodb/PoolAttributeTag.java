@@ -6,6 +6,7 @@ public class PoolAttributeTag {
 	public static final String SHOW_CLASS = "showClass";
 	public static final String HOST = "host";
 	public static final String DATABASE = "database";
+	public static final String PORT = "port";
 	public static final String AUTH_DATABASE = "authenticationDatabase";
 	public static final String GRIDFS_DATABASE = "gridFsDatabase";
 	public static final String USERNAME = "username";
@@ -15,6 +16,7 @@ public class PoolAttributeTag {
 	public static final String THREADS_ALLOWED_TO_BLOCK_FOR_CONN_MULTIPLIER = "threadsAllowedToBlockForConnectionMultiplier";
 	public static final String SERVER_SELECTION_TIMEOUT = "serverSelectionTimeout";
 	public static final String MAX_WAIT_TIME = "maxWaitTime";
+	public static final String APPLICATIONNAME = "applicationName";
 	
 	public static final String MAX_CONN_IDLE_TIME = "maxConnectionIdleTime";
 	public static final String MAX_CONN_LIFE_TIME = "maxConnectionLifeTime";

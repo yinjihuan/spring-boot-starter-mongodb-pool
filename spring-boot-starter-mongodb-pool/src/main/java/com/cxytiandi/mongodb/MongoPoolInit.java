@@ -14,7 +14,7 @@ import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.beans.factory.support.BeanDefinitionReaderUtils;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.beans.factory.support.BeanDefinitionRegistryPostProcessor;
-import org.springframework.boot.bind.RelaxedPropertyResolver;
+import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.context.EnvironmentAware;
 import org.springframework.context.annotation.AnnotationConfigUtils;
 import org.springframework.context.annotation.AnnotationScopeMetadataResolver;
@@ -61,10 +61,10 @@ public class MongoPoolInit implements BeanDefinitionRegistryPostProcessor, Envir
 			List<ServerAddress> seeds = Arrays.asList(new ServerAddress(properties.getHost(), properties.getPort()));
 			MongoClient mongoClient = new MongoClient(seeds, options);
 			SimpleMongoDbFactory mongoDbFactory = null;
-			if (StringUtils.hasText(properties.getGridFsDatabase())) {
-				mongoDbFactory = new SimpleMongoDbFactory(mongoClient, properties.getGridFsDatabase());
-			} else {
+			if (StringUtils.hasText(properties.getDatabase())) {
 				mongoDbFactory = new SimpleMongoDbFactory(mongoClient, properties.getDatabase());
+			} else {
+				mongoDbFactory = new SimpleMongoDbFactory(mongoClient, properties.getGridFsDatabase());
 			}
 			MappingMongoConverter converter = buildConverter(mongoDbFactory, properties.isShowClass());
 			boolean primary = false;
@@ -116,6 +116,7 @@ public class MongoPoolInit implements BeanDefinitionRegistryPostProcessor, Envir
 
 	private MongoClientOptions buildMongoOptions(MongoPoolProperties properties) {
 		MongoClientOptions options = new MongoClientOptions.Builder()
+				.applicationName(properties.getApplicationName())
 				.connectionsPerHost(properties.getMaxConnectionsPerHost())
 				.minConnectionsPerHost(properties.getMinConnectionsPerHost())
 				.threadsAllowedToBlockForConnectionMultiplier(
@@ -138,8 +139,7 @@ public class MongoPoolInit implements BeanDefinitionRegistryPostProcessor, Envir
 
 	public void setEnvironment(Environment environment) {
 		// 初始化配置信息到对象的映射
-		RelaxedPropertyResolver propertyResolver = new RelaxedPropertyResolver(environment);
-		Map<String, Object> map = propertyResolver.getSubProperties("spring.data.mongodb.");
+		Map<String, Object> map = Binder.get(environment).bind("spring.data.mongodb", Map.class).get();
 		Set<String> mongoTemplateNames = new TreeSet<String>();
 		Set<String> keys = map.keySet();
 
@@ -150,49 +150,51 @@ public class MongoPoolInit implements BeanDefinitionRegistryPostProcessor, Envir
 
 		for (String name : mongoTemplateNames) {
 			MongoPoolProperties pro = new MongoPoolProperties();
-			buildProperties(map, name, pro);
+			buildProperties((Map)map.get(name), name, pro);
 			pools.add(pro);
 		}
 	}
 
 	private void buildProperties(Map<String, Object> map, String name, MongoPoolProperties pro) {
-		pro.setShowClass(formatBoolValue(map, name + "." + PoolAttributeTag.SHOW_CLASS, true));
+		pro.setShowClass(formatBoolValue(map, PoolAttributeTag.SHOW_CLASS, true));
 		pro.setMongoTemplateName(name);
-		pro.setGridFsTemplateName(formatStringValue(map, name + "." + PoolAttributeTag.GRID_FS_TEMPLATE_NAME));
-		pro.setHost(formatStringValue(map, name + "." + PoolAttributeTag.HOST));
-		pro.setDatabase(formatStringValue(map, name + "." + PoolAttributeTag.DATABASE));
-		pro.setAuthenticationDatabase(formatStringValue(map, name + "." + PoolAttributeTag.AUTH_DATABASE));
-		pro.setGridFsDatabase(formatStringValue(map, name + "." + PoolAttributeTag.GRIDFS_DATABASE));
-		pro.setUsername(formatStringValue(map, name + "." + PoolAttributeTag.USERNAME));
-		pro.setPassword(formatChatValue(map, name + "." + PoolAttributeTag.PASSWORD));
+		pro.setGridFsTemplateName(formatStringValue(map, PoolAttributeTag.GRID_FS_TEMPLATE_NAME, name + "GridFsTemplate"));
+		pro.setHost(formatStringValue(map, PoolAttributeTag.HOST, "localhost"));
+		pro.setPort(formatIntValue(map, PoolAttributeTag.PORT, 27017));
+		pro.setDatabase(formatStringValue(map, PoolAttributeTag.DATABASE, "test"));
+		pro.setAuthenticationDatabase(formatStringValue(map, PoolAttributeTag.AUTH_DATABASE, "admin"));
+		pro.setGridFsDatabase(formatStringValue(map, PoolAttributeTag.GRIDFS_DATABASE, "test"));
+		pro.setUsername(formatStringValue(map, PoolAttributeTag.USERNAME, null));
+		pro.setPassword(formatChatValue(map, PoolAttributeTag.PASSWORD));
+		pro.setApplicationName(formatStringValue(map, PoolAttributeTag.APPLICATIONNAME, null));
 		
-		pro.setMinConnectionsPerHost(formatIntValue(map, name + "." + PoolAttributeTag.MIN_CONN_PERHOST, 0));
-		pro.setMaxConnectionsPerHost(formatIntValue(map, name + "." + PoolAttributeTag.MAX_CONN_PERHOST, 100));
-		pro.setThreadsAllowedToBlockForConnectionMultiplier(formatIntValue(map, name + "." + PoolAttributeTag.THREADS_ALLOWED_TO_BLOCK_FOR_CONN_MULTIPLIER, 5));
-		pro.setServerSelectionTimeout(formatIntValue(map, name + "." + PoolAttributeTag.SERVER_SELECTION_TIMEOUT, 1000 * 30));
-		pro.setMaxWaitTime(formatIntValue(map, name + "." + PoolAttributeTag.MAX_WAIT_TIME, 1000 * 60 * 2));
-		pro.setMaxConnectionIdleTime(formatIntValue(map, name + "." + PoolAttributeTag.MAX_CONN_IDLE_TIME, 0));
-		pro.setMaxConnectionLifeTime(formatIntValue(map, name + "." + PoolAttributeTag.MAX_CONN_LIFE_TIME, 0));
-		pro.setConnectTimeout(formatIntValue(map, name + "." + PoolAttributeTag.CONN_TIMEOUT, 1000 * 10));
-		pro.setSocketTimeout(formatIntValue(map, name + "." + PoolAttributeTag.SOCKET_TIMEOUT, 0));
+		pro.setMinConnectionsPerHost(formatIntValue(map, PoolAttributeTag.MIN_CONN_PERHOST, 0));
+		pro.setMaxConnectionsPerHost(formatIntValue(map, PoolAttributeTag.MAX_CONN_PERHOST, 100));
+		pro.setThreadsAllowedToBlockForConnectionMultiplier(formatIntValue(map, PoolAttributeTag.THREADS_ALLOWED_TO_BLOCK_FOR_CONN_MULTIPLIER, 5));
+		pro.setServerSelectionTimeout(formatIntValue(map, PoolAttributeTag.SERVER_SELECTION_TIMEOUT, 1000 * 30));
+		pro.setMaxWaitTime(formatIntValue(map, PoolAttributeTag.MAX_WAIT_TIME, 1000 * 60 * 2));
+		pro.setMaxConnectionIdleTime(formatIntValue(map, PoolAttributeTag.MAX_CONN_IDLE_TIME, 0));
+		pro.setMaxConnectionLifeTime(formatIntValue(map, PoolAttributeTag.MAX_CONN_LIFE_TIME, 0));
+		pro.setConnectTimeout(formatIntValue(map, PoolAttributeTag.CONN_TIMEOUT, 1000 * 10));
+		pro.setSocketTimeout(formatIntValue(map, PoolAttributeTag.SOCKET_TIMEOUT, 0));
 		
-		pro.setSocketKeepAlive(formatBoolValue(map, name + "." + PoolAttributeTag.SOCKET_KEEP_ALIVE, false));
-		pro.setSslEnabled(formatBoolValue(map, name + "." + PoolAttributeTag.SSL_ENABLED, false));
-		pro.setSslInvalidHostNameAllowed(formatBoolValue(map, name + "." + PoolAttributeTag.SSL_INVALID_HOSTNAME_ALLOWED, false));
-		pro.setAlwaysUseMBeans(formatBoolValue(map, name + "." + PoolAttributeTag.ALWAYS_USE_MBEANS, false));
+		pro.setSocketKeepAlive(formatBoolValue(map, PoolAttributeTag.SOCKET_KEEP_ALIVE, false));
+		pro.setSslEnabled(formatBoolValue(map, PoolAttributeTag.SSL_ENABLED, false));
+		pro.setSslInvalidHostNameAllowed(formatBoolValue(map, PoolAttributeTag.SSL_INVALID_HOSTNAME_ALLOWED, false));
+		pro.setAlwaysUseMBeans(formatBoolValue(map, PoolAttributeTag.ALWAYS_USE_MBEANS, false));
 		
-		pro.setHeartbeatFrequency(formatIntValue(map, name + "." + PoolAttributeTag.HEARTBEAT_FREQUENCY, 10000));
-		pro.setMinHeartbeatFrequency(formatIntValue(map, name + "." + PoolAttributeTag.MIN_HEARTBEAT_FREQUENCY, 500));
-		pro.setHeartbeatConnectTimeout(formatIntValue(map, name + "." + PoolAttributeTag.HEARTBEAT_CONN_TIMEOUT, 20000));
-		pro.setHeartbeatSocketTimeout(formatIntValue(map, name + "." + PoolAttributeTag.HEARTBEAT_SOCKET_TIMEOUT, 20000));
-		pro.setLocalThreshold(formatIntValue(map, name + "." + PoolAttributeTag.LOCAL_THRESHOLD, 15));
+		pro.setHeartbeatFrequency(formatIntValue(map, PoolAttributeTag.HEARTBEAT_FREQUENCY, 10000));
+		pro.setMinHeartbeatFrequency(formatIntValue(map, PoolAttributeTag.MIN_HEARTBEAT_FREQUENCY, 500));
+		pro.setHeartbeatConnectTimeout(formatIntValue(map, PoolAttributeTag.HEARTBEAT_CONN_TIMEOUT, 20000));
+		pro.setHeartbeatSocketTimeout(formatIntValue(map, PoolAttributeTag.HEARTBEAT_SOCKET_TIMEOUT, 20000));
+		pro.setLocalThreshold(formatIntValue(map, PoolAttributeTag.LOCAL_THRESHOLD, 15));
 	}
 
-	private String formatStringValue(Map<String, Object> map, String key) {
+	private String formatStringValue(Map<String, Object> map, String key, String defaultValue) {
 		if (map.containsKey(key)) {
 			return map.get(key).toString();
 		}
-		return null;
+		return defaultValue;
 	}
 	
 	private int formatIntValue(Map<String, Object> map, String key, int defaultValue) {
