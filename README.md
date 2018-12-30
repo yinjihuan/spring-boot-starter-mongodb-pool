@@ -60,6 +60,7 @@ private MongoTemplate seaweedMongoTemplate;
 
 ## 主要功能
 
+- 目前最新的jar包只支持Spring Boot 2.0, Spring Boot 1.0版本的可以下载releases中的1.0.0版本的源码进行修改
 - 可以配置多个数据源
 - 支持连接池参数配置
 - 支持去掉_class的配置
@@ -67,7 +68,28 @@ private MongoTemplate seaweedMongoTemplate;
 ## 不支持的功能
 
 - 多数据源配置后不支持Repository接口方式的使用
-- 不支持uri配置连接信息
+- 不支持uri配置连接池信息
+
+## 仓库地址
+
+```
+<repositories>
+	<repository>
+		<id>jitpack.io</id>
+		<url>https://www.jitpack.io</url>
+	</repository>
+</repositories>
+```
+
+## Maven依赖
+
+```
+<dependency>
+	<groupId>com.github.yinjihuan</groupId>
+	<artifactId>spring-boot-starter-mongodb-pool</artifactId>
+	<version>2.0.2</version>
+</dependency>
+```
 
 ## 配置方式
 
@@ -84,6 +106,16 @@ spring.data.mongodb.logsMongoTemplate.host=localhost
 spring.data.mongodb.logsMongoTemplate.port=27017
 spring.data.mongodb.logsMongoTemplate.database=logs
 spring.data.mongodb.logsMongoTemplate.gridFsTemplateName=logsGridFsTemplate
+```
+
+带认证的集群配置方式：
+
+```
+spring.data.mongodb.testMongoTemplate.uri=localhost:27017,localhost:27018
+spring.data.mongodb.testMongoTemplate.username=yinjihuan
+spring.data.mongodb.testMongoTemplate.password=123456
+spring.data.mongodb.testMongoTemplate.database=backup
+spring.data.mongodb.testMongoTemplate.showClass=false
 ```
 
 testMongoTemplate和logsMongoTemplate就是每个数据源对应的MongoTemplate
