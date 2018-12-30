@@ -33,6 +33,7 @@ import org.springframework.util.StringUtils;
 
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
+import com.mongodb.MongoCredential;
 import com.mongodb.ServerAddress;
 
 /**
@@ -58,20 +59,44 @@ public class MongoPoolInit implements BeanDefinitionRegistryPostProcessor, Envir
 		int index = 0;
 		for (MongoPoolProperties properties : pools) {
 			MongoClientOptions options = buildMongoOptions(properties);
-			List<ServerAddress> seeds = Arrays.asList(new ServerAddress(properties.getHost(), properties.getPort()));
-			MongoClient mongoClient = new MongoClient(seeds, options);
+			List<ServerAddress> seeds = null;
+			// 优选选择URI构造链接
+			if (StringUtils.hasText(properties.getUri())) {
+				seeds = new ArrayList<ServerAddress>();
+				String[] uris = properties.getUri().split(",");
+				for (String u : uris) {
+					String[] us = u.split(":");
+					seeds.add(new ServerAddress(us[0], Integer.parseInt(us[1])));
+				}
+			} else {
+				seeds = Arrays.asList(new ServerAddress(properties.getHost(), properties.getPort()));
+			}
+			
+			MongoClient mongoClient = null;
+			// 认证信息
+			if (StringUtils.hasText(properties.getUsername()) && 
+					StringUtils.hasText(properties.getAuthenticationDatabase()) && properties.getPassword() != null) {
+				MongoCredential cre = MongoCredential.createCredential(properties.getUsername(), properties.getAuthenticationDatabase(), 
+						properties.getPassword());
+				mongoClient = new MongoClient(seeds, cre, options);
+			} else {
+				mongoClient = new MongoClient(seeds, options);
+			}
+			
 			SimpleMongoDbFactory mongoDbFactory = null;
 			if (StringUtils.hasText(properties.getDatabase())) {
 				mongoDbFactory = new SimpleMongoDbFactory(mongoClient, properties.getDatabase());
 			} else {
 				mongoDbFactory = new SimpleMongoDbFactory(mongoClient, properties.getGridFsDatabase());
 			}
+			
 			MappingMongoConverter converter = buildConverter(mongoDbFactory, properties.isShowClass());
 			boolean primary = false;
 			if (index == 0) {
 				primary = true;
 				index++;
 			}
+			
 			registryMongoTemplate(registry, primary, properties, mongoDbFactory, converter);
 			registryGridFsTemplate(registry, primary, properties, mongoDbFactory, converter);
 		}
@@ -156,6 +181,7 @@ public class MongoPoolInit implements BeanDefinitionRegistryPostProcessor, Envir
 	}
 
 	private void buildProperties(Map<String, Object> map, String name, MongoPoolProperties pro) {
+		pro.setUri(formatStringValue(map, PoolAttributeTag.URI, ""));
 		pro.setShowClass(formatBoolValue(map, PoolAttributeTag.SHOW_CLASS, true));
 		pro.setMongoTemplateName(name);
 		pro.setGridFsTemplateName(formatStringValue(map, PoolAttributeTag.GRID_FS_TEMPLATE_NAME, name + "GridFsTemplate"));

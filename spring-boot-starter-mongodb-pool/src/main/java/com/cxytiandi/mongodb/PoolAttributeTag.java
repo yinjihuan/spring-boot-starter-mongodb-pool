@@ -5,6 +5,7 @@ public class PoolAttributeTag {
 	public static final String GRID_FS_TEMPLATE_NAME = "gridFsTemplateName";
 	public static final String SHOW_CLASS = "showClass";
 	public static final String HOST = "host";
+	public static final String URI = "uri";
 	public static final String DATABASE = "database";
 	public static final String PORT = "port";
 	public static final String AUTH_DATABASE = "authenticationDatabase";

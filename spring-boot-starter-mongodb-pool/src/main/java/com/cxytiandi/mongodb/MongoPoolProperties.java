@@ -10,6 +10,9 @@ public class MongoPoolProperties {
 	
 	private String applicationName;
 	
+	// 集群模式，多个数据库地址，和host,port二选一。格式为：192.168.1.1:8212,192.168.1.2:8213
+	private String uri;
+	
 	/**
 	 * 存储时是否保存_class
 	 */
